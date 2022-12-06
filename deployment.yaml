@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: takahe
+  labels:
+    app: takahe
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: takahe
+  template:
+    metadata:
+      labels:
+        app: takahe
+    spec:
+      volumes:
+        - name: media
+          persistentVolumeClaim:
+            claimName: takahe
+      containers:
+        - name: takahe
+          image: "jointakahe/takahe:latest"
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: takahe
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          volumeMounts:
+            - mountPath: "/takahe/media"
+              name: media
+        - name: stator
+          image: "jointakahe/takahe:latest"
+          imagePullPolicy: Always
+          command:
+            - python
+            - manage.py
+            - runstator
+          envFrom:
+            - configMapRef:
+                name: takahe
+          volumeMounts:
+            - mountPath: "/takahe/media"
+              name: media
+      initContainers:
+        - name: migrations
+          image: "jointakahe/takahe:latest"
+          imagePullPolicy: Always
+          command:
+            - python
+            - manage.py
+            - migrate
+          envFrom:
+            - configMapRef:
+                name: takahe
+          volumeMounts:
+            - mountPath: "/takahe/media"
+              name: media
